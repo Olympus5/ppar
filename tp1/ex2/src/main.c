@@ -60,9 +60,20 @@ int main(int argc,char *argv[])
    gettimeofday(&time1,0);
 
    // finding the branch weights
-   for (i = 0; i < n; i++)
+   /* On s'arrête une fois que tout les noeuds pointe sur le root */
+   for (i = 0; i < n && T[n-1] > 0; i++)
    {
-       
+       for(j = n - 1; j >= 0; j--) {
+           if(i == 0) {
+               res[j] = val[j] + val[T[j]];
+           } else {
+               res[j] += val[T[j]];
+           }
+
+           if(T[j] != 0) {
+               T[j] = T[T[j]];/* Déplacement */
+           }
+       }
    }
 
    printf("%s: found solutions: ",argv[0]);
