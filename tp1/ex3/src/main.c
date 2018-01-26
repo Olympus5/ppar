@@ -8,6 +8,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/time.h>
+#include <unistd.h>
+
 
 int maxn = 100000;
 
@@ -60,11 +62,11 @@ int main(int argc,char *argv[])
    gettimeofday(&time1,0);
 
    // finding the branch weights
-   /* On s'arrête une fois que tout les noeuds pointe sur le root ou qu'on a parcouru tout les noeuds */
+   fork();
+   /* On s'arrête une fois que tout les noeuds pointe sur le root */
    for (i = 0; i < n && T[n-1] > 0; i++)
    {
        for(j = n - 1; j >= 0; j--) {
-           /* On additionne nos valeurs afin d'avoir le poids total  */
            if(i == 0) {
                res[j] = val[j] + val[T[j]];
            } else {
