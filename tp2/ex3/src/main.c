@@ -4,7 +4,7 @@
 
 int main(int argc, char* argv[]) {
     char* set;
-    int size, i, j;
+    int size, i, j, tot;
 
     if(argc < 2) {
         printf("Veuillez entrer un nombre (supérieur à 3): \n");
@@ -42,11 +42,17 @@ int main(int argc, char* argv[]) {
     }
 
     printf("La liste des nombre premier: \n");
+
+    tot = 0;
+
     for(i = 0; i < size; i++) {
         if(set[i]) {
             printf("%d\n", i);
+            tot++;
         }
     }
+
+    printf("Il y a %d nombre premier\n", tot);
 
     free(set);
 
