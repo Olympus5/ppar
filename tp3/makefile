@@ -1,6 +1,6 @@
 CC=gcc
-CFLAGS=-fopenmp -g -W -Wall -pedantic -I inc
-LDFLAGS=-fopenmp -lm
+CFLAGS=-g -W -Wall -pedantic -I inc
+LDFLAGS=-lm
 EXEC=bin/main
 
 all: $(EXEC)
@@ -8,7 +8,7 @@ all: $(EXEC)
 bin/main: obj/main.o
 	$(CC) -o bin/main obj/main.o $(LDFLAGS)
 
-obj/main.o: src/main.c inc/main.h
+obj/main.o: src/main.c
 	$(CC) -o obj/main.o -c src/main.c $(CFLAGS)
 
 clean:
