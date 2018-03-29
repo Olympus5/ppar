@@ -12,6 +12,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <time.h>
+#include <mpi.h>
 
 int N = 32;
 int itMax = 1000;
@@ -279,22 +280,91 @@ int main(int argc,char *argv[])
    unsigned int *world1,*world2;
    unsigned int *worldaux;
 
-   // getting started
-   //world1 = initialize_dummy();
-   world1 = initialize_random();
-   //world1 = initialize_glider();
-   //world1 = initialize_small_exploder();
+   // some useful variable for MPI program
+   int my_rank, n, first_index;
+   MPI_Request request;
+   MPI_Status status;
+
+   // Init MPI
+   MPI_Init(&argc, &argv);
+   MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
+   MPI_Comm_size(MPI_COMM_WORLD, &n);
+
+   // 1. all processes verify that N is divisible by p: if not, the execution is aborted
+   if(N < n) {
+      fprintf(stderr, "It cann't have more processes than the size of your game.");
+      fprintf(stderr, "Give a correct number of processes (lower or equals than %d).", N);
+      fprintf(stderr, "The game abort.");
+      exit(-1);
+   }
+
+   if(my_rank == 0) {
+      // getting started
+
+      // 2. process 0 generates the initial world
+      world1 = initialize_random();
+
+      // 3. process 0 sends to all other processes the generated initial world (communication type: one-to-all)
+      MPI_Bcast(world1, n, MPI_INT, 0, MPI_COMM_WORLD);
+
+      // 4. process 0 prints the initial world on the screen
+      print(world1);
+   }
+
    world2 = allocate();
-   print(world1);
+
+   // 5. every process computes the first and last row index of its world region;
+   first_index = (N*N)/n * my_rank; // THe last index is: first_index + (N/n) - 1
 
    it = 0;  change = 1;
+
+   // 6. in the main while loop
    while (change && it < itMax)
    {
-      change = newgeneration(world1,world2,0,N);
+      // 6.a every process invokes newgeneration with its first and last row index
+      change = newgeneration(world1, world2, first_index, first_index + (N * N / n) - 1);
+      // 6.b the pointers of world1 and world2 are inverted, as in the sequential version
       worldaux = world1;  world1 = world2;  world2 = worldaux;
-      print(world1);
+      // 6.c the processes exchange the neighbouring rows, necessary for computing the next generation (communication type: one-to-one)
+      printf("(START) my rank is: %d\n", my_rank);
+      if(my_rank < n-1) {
+         MPI_Isend(world1, N*N, MPI_INT, my_rank + 1, 0, MPI_COMM_WORLD, &request);
+         MPI_Irecv(world2, N*N, MPI_INT, my_rank + 1, 0, MPI_COMM_WORLD, &request);
+      }
+
+      if(my_rank > 0) {
+         MPI_Isend(world1, N*N, MPI_INT, my_rank - 1, 0, MPI_COMM_WORLD, &request);
+         MPI_Irecv(world2, N*N, MPI_INT, my_rank - 1, 0, MPI_COMM_WORLD, &request);
+      }
+
+      //We will update the left neighbor part
+      if(my_rank > 0) {
+         for(int i = first_index - ((N * N) / n); i < first_index; i++) {
+            world1[i] = world2[i];
+         }
+      }
+
+      //We will update the right neighbor part
+      if(my_rank < n - 1) {
+         for(int i = first_index - ((N * N) / n); i < first_index; i++) {
+            world1[i] = world2[i];
+         }
+      }
+
+      printf("(END) my rank is: %d\n", my_rank);
+
       it++;
    }
+
+   /*
+    * process 0 collects the results obtained by the other processes (communication type: all-to-one):
+    * consider that the partial results are stored in different regions of different torus representations,
+    * and that memory for representing the entire torus was allocated by all processes
+    */
+   MPI_Gather(world1, N*N, MPI_INT, world2, N*N, MPI_INT, 0, MPI_COMM_WORLD);
+
+   // process 0 prints the final result
+   print(world1);
 
    // ending
    free(world1);   free(world2);

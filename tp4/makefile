@@ -1,4 +1,4 @@
-CC=gcc
+CC=mpicc
 CFLAGS=-g -W -Wall -pedantic -I inc
 LDFLAGS=-lm
 EXEC=bin/gamelife
