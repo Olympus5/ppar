@@ -48,15 +48,15 @@ int main(int argc, char ** argv)
     // Definition of parameters
     int domain_x = 128;	// Multiple of threads_per_block * cells_per_word
     int domain_y = 128;
-    
+
     int cells_per_word = 1;
-    
+
     int steps = 2;
-    
+
     int threads_per_block = 128;
     int blocks_x = domain_x / (threads_per_block * cells_per_word);
     int blocks_y = domain_y;
-    
+
     dim3  grid(blocks_x, blocks_y);	// CUDA grid dimensions
     dim3  threads(threads_per_block);	// CUDA block dimensions
 
@@ -84,7 +84,7 @@ int main(int argc, char ** argv)
     CUDA_SAFE_CALL(cudaEventRecord(start, 0));
 
     // Kernel execution
-    int shared_mem_size = 0;
+    int shared_mem_size = domain_size;
     for(int i = 0; i < steps; i++) {
 	    life_kernel<<< grid, threads, shared_mem_size >>>(domain_gpu[i%2],
 	    	domain_gpu[(i+1)%2], domain_x, domain_y);
@@ -93,7 +93,7 @@ int main(int argc, char ** argv)
     // Stop timer
     CUDA_SAFE_CALL(cudaEventRecord(stop, 0));
     CUDA_SAFE_CALL(cudaEventSynchronize(stop));
-    
+
     float elapsedTime;
     CUDA_SAFE_CALL(cudaEventElapsedTime(&elapsedTime, start, stop));	// In ms
     printf("GPU time: %f ms\n", elapsedTime);
@@ -106,16 +106,15 @@ int main(int argc, char ** argv)
 
     CUDA_SAFE_CALL(cudaFree(domain_gpu[0]));
     CUDA_SAFE_CALL(cudaFree(domain_gpu[1]));
-    
+
 
     // Count colors
     int red = 0;
     int blue = 0;
     print_domain(domain_cpu, domain_x, domain_y, &red, &blue);
     printf("Red/Blue cells: %d/%d\n", red, blue);
-    
+
     free(domain_cpu);
-    
+
     return 0;
 }
-

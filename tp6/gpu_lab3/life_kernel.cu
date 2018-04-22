@@ -12,11 +12,16 @@ __device__ int read_cell(int * source_domain, int x, int y, int dx, int dy,
 __global__ void life_kernel(int * source_domain, int * dest_domain,
     int domain_x, int domain_y)
 {
+    extern __shared__ sdata[];
+
     int tx = blockIdx.x * blockDim.x + threadIdx.x;
     int ty = blockIdx.y;
-    
+
+	sdata[ty * domain_x + tx] = source_domain[ty * domain_x + tx];
+	__syncthreads();
+
     // Read cell
-    int myself = read_cell(source_domain, tx, ty, 0, 0,
+    int myself = read_cell(sdata, tx, ty, 0, 0,
 	                       domain_x, domain_y);
     	int blue = 0; // Nombre de pion bleu
 	int red = 0; // Nombre de pion rouge
@@ -31,15 +36,18 @@ __global__ void life_kernel(int * source_domain, int * dest_domain,
 		dx = (tx + x) % domain_x;
 		for(int y = 0; y < 3; y++) {
 			dy = (ty + y) % domain_y;
-			current = read_cell(source_domain, tx, ty, dx, dy, domain_x, domain_y);
+			if(dy != 0 || dx != 0) {
+				current = read_cell(sdata, tx, ty, dx, dy, domain_x, domain_y);
 
-			if(current == 2) {
-				blue++;
-			} else if(current == 1){
-				red++;
-			}		
+				if(current == 2) {
+					blue++;
+				} else if(current == 1){
+					red++;
+				}
+			}
 		}
 	}
+    __syncthreads();
 
 	total = blue + red;
 	// TODO: Compute new value
@@ -50,9 +58,8 @@ __global__ void life_kernel(int * source_domain, int * dest_domain,
 		if(myself == 0) {
 			myself = (red > blue) ? 1 : 2;
 		}
-	}	
+	}
 	// TODO: Write it in dest_domain
 	// TODO: NE SUPPRIME TOUJOURS RIEN - ERWAN
-	dest_domain[ty * domain_x + tx] = myself;		
+	dest_domain[ty * domain_x + tx] = myself;
 }
-
